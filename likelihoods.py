@@ -25,7 +25,8 @@ def orbit_log_likelihood_ndim12(params, dict_data):
 
     else:
         logl = get_logl_from_spline(spline, theta_model, dict_data)
-        return logl
+    
+    return logl
     
 def get_logl_from_spline(spline, theta_model, dict_data):
     r_data = dict_data['r']

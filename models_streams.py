@@ -87,7 +87,7 @@ def gala_stream_model_ndim16(params, dt=-10):
 
     return xyz_stream, xyz_prog
 
-def stream_spline_ndim16(params, n_theta=72, min_particle=3, max_dist=80, package='gala'):
+def stream_spline_ndim16(params, n_theta=72, min_particle=3, max_dist=80, package='agama'):
     if package == 'gala':
         xyz_stream, xyz_prog = gala_stream_model_ndim16(params)
     elif package == 'agama':
