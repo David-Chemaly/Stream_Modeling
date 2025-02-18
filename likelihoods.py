@@ -1,24 +1,10 @@
 import numpy as np
-
-from models_streams import stream_spline_ndim16
-from models_orbits import orbit_spline_ndim12
 from scipy.interpolate import CubicSpline
 
 BAD_VAL = -1e100
 
-def stream_log_likelihood_ndim16(params, dict_data, package='gala'):
-    spline, theta_model = stream_spline_ndim16(params, n_theta=72, min_particle=3, max_dist=80, package=package)
-
-    if spline == None:
-        logl = 2*BAD_VAL
-
-    else:
-        logl = get_logl_from_spline(spline, theta_model, dict_data)
-    
-    return logl
-    
-def orbit_log_likelihood_ndim12(params, dict_data):
-    spline, theta_model = orbit_spline_ndim12(params)
+def model_log_likelihood(params, dict_data, model, spline_model):
+    spline, theta_model = spline_model(model(params))
 
     if spline == None:
         logl = 2*BAD_VAL

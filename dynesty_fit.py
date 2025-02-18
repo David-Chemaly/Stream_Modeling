@@ -6,6 +6,8 @@ import dynesty
 import dynesty.utils as dyut
 
 def dynesty_fit(dict_data, 
+                model,
+                spline_model,
                 log_likelihood,
                 prior_transform,
                 ndim=13, nlive=4000):
@@ -15,7 +17,7 @@ def dynesty_fit(dict_data,
         dns = dynesty.DynamicNestedSampler(log_likelihood,
                                 prior_transform,
                                 ndim,
-                                logl_args=(dict_data, ),
+                                logl_args=(dict_data, model, spline_model),
                                 nlive=nlive,
                                 sample='rslice',  
                                 pool=poo,

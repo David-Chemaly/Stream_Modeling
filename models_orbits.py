@@ -16,7 +16,7 @@ from utils import *
 from agama_spray import create_stream_particle_spray_with_progenitor
 
 
-def gala_stream_model_ndim12(params, n_steps=int(1e3)):
+def gala_orbit_model_ndim12(params, n_steps=int(1e3)):
     # Unpack parameters
     logM, Rs, q, dirx, diry, dirz, \
     pos_init_x, pos_init_z, \
@@ -53,10 +53,47 @@ def gala_stream_model_ndim12(params, n_steps=int(1e3)):
 
     return xy_stream
 
-def orbit_spline_ndim12(params):
-    xy_model = gala_stream_model_ndim12(params)
-    x_model = xy_model[:,0]
-    y_model = xy_model[:,1]
+def gala_orbit_model_ndim13(params, n_steps=int(1e3)):
+    # Unpack parameters
+    logM, Rs, q, dirx, diry, dirz, \
+    pos_init_x, pos_init_y, pos_init_z, \
+    vel, dirvx, dirvy, dirvz = params
+
+    t_end = 2 # Gyr always
+
+    units = [auni.kpc, auni.km / auni.s, auni.Msun, auni.Gyr, auni.rad]
+
+    v_dir = np.array([dirvx, dirvy, dirvz])
+    v_dir = v_dir/np.linalg.norm(v_dir)
+
+    vel = 10 ** vel
+    vel_init_x = vel * v_dir[0]
+    vel_init_y = vel * v_dir[1]
+    vel_init_z = vel * v_dir[2]
+    
+    w0 = gd.PhaseSpacePosition(
+        pos=np.array([pos_init_x, pos_init_y, pos_init_z]) * auni.kpc,
+        vel=np.array([vel_init_x, vel_init_y, vel_init_z]) * auni.km / auni.s,
+    )
+
+    mat = get_mat(dirx, diry, dirz)
+
+    pot = gp.NFWPotential(10**logM, Rs, 1, 1, q, R=mat, units=units)
+
+    orbit = pot.integrate_orbit(w0,
+                                dt=t_end / n_steps * auni.Gyr,
+                                n_steps=n_steps)
+    xout, yout, zout = orbit.x.to_value(auni.kpc), orbit.y.to_value(
+        auni.kpc), orbit.z.to_value(auni.kpc)
+    
+    xyz_orbit = np.array([xout, yout, zout]).T
+    xyz_prog  = np.array([xout[-1], yout[-1], zout[-1]]).T
+
+    return xyz_orbit, xyz_prog
+
+def orbit_spline(xyz_model):
+    x_model = xyz_model[:,0]
+    y_model = xyz_model[:,1]
     r_model = np.sqrt(x_model**2 + y_model**2)
     theta_model = np.unwrap( np.arctan2(y_model, x_model) )
 
