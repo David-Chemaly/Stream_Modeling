@@ -1,0 +1,70 @@
+
+import numpy as np
+from scipy.spatial.transform import Rotation as R
+
+import agama
+agama.setUnits(length=1, velocity=1, mass=1)
+
+from astropy import units as auni
+import gala.potential as gp
+import gala.dynamics as gd
+from gala.dynamics import mockstream as ms
+from scipy.spatial.transform import Rotation as R
+from scipy.interpolate import CubicSpline
+
+from utils import *
+from agama_spray import create_stream_particle_spray_with_progenitor
+
+
+def gala_stream_model_ndim12(params, n_steps=int(1e3)):
+    # Unpack parameters
+    logM, Rs, q, dirx, diry, dirz, \
+    pos_init_x, pos_init_z, \
+    vel, dirvx, dirvy, dirvz = params
+
+    t_end = 2 # Gyr always
+
+    units = [auni.kpc, auni.km / auni.s, auni.Msun, auni.Gyr, auni.rad]
+
+    v_dir = np.array([dirvx, dirvy, dirvz])
+    v_dir = v_dir/np.linalg.norm(v_dir)
+
+    vel = 10 ** vel
+    vel_init_x = vel * v_dir[0]
+    vel_init_y = vel * v_dir[1]
+    vel_init_z = vel * v_dir[2]
+    
+    w0 = gd.PhaseSpacePosition(
+        pos=np.array([pos_init_x, 0, pos_init_z]) * auni.kpc,
+        vel=np.array([vel_init_x, vel_init_y, vel_init_z]) * auni.km / auni.s,
+    )
+
+    mat = get_mat(dirx, diry, dirz)
+
+    pot = gp.NFWPotential(10**logM, Rs, 1, 1, q, R=mat, units=units)
+
+    orbit = pot.integrate_orbit(w0,
+                                dt=t_end / n_steps * auni.Gyr,
+                                n_steps=n_steps)
+    xout, yout, _ = orbit.x.to_value(auni.kpc), orbit.y.to_value(
+        auni.kpc), orbit.z.to_value(auni.kpc)
+    
+    xy_stream = np.array([xout, yout]).T
+
+    return xy_stream
+
+def orbit_spline_ndim12(params):
+    xy_model = gala_stream_model_ndim12(params)
+    x_model = xy_model[:,0]
+    y_model = xy_model[:,1]
+    r_model = np.sqrt(x_model**2 + y_model**2)
+    theta_model = np.unwrap( np.arctan2(y_model, x_model) )
+
+    if (np.diff(theta_model) <= 0).any():
+        spline = None
+        theta_model = None
+
+    else:
+        spline = CubicSpline(theta_model, r_model)
+
+    return spline, theta_model
