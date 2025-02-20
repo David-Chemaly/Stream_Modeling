@@ -10,14 +10,14 @@ def dynesty_fit(dict_data,
                 spline_model,
                 log_likelihood,
                 prior_transform,
-                ndim=13, nlive=4000):
+                ndim=13, nlive=4000, theta_initial=0):
     
     nthreads = os.cpu_count()
     with mp.Pool(nthreads) as poo:
         dns = dynesty.DynamicNestedSampler(log_likelihood,
                                 prior_transform,
                                 ndim,
-                                logl_args=(dict_data, model, spline_model),
+                                logl_args=(dict_data, model, spline_model, theta_initial),
                                 nlive=nlive,
                                 sample='rslice',  
                                 pool=poo,

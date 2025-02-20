@@ -37,7 +37,7 @@ def orbit_large_prior_transform_ndim12(p):
     logM, Rs, q, dirx, diry, dirz, \
     x0, z0, v0, dirvx, dirvy, dirvz = p
 
-    logM1  = (11 + 4*logM)
+    logM1  = (11 + 3*logM)
     Rs1    = (5 + 20*Rs)
     q1     = 0.5 + q
     dirx1, diry1, dirz1 = [
@@ -60,7 +60,7 @@ def orbit_unrestricted_prior_transform_ndim13(p):
     logM, Rs, q, dirx, diry, dirz, \
     x0, y0, z0, v0, dirvx, dirvy, dirvz = p
 
-    logM1  = (11 + 4*logM)
+    logM1  = (11 + 3*logM)
     Rs1    = (5 + 20*Rs)
     q1     = 0.5 + q
     dirx1, diry1, dirz1 = [

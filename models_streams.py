@@ -83,15 +83,11 @@ def gala_stream_model_ndim16(params, dt=-10):
 
     stream, prog = gen.run(w0, 10**logm * auni.Msun, dt=dt* auni.Myr, n_steps=int(t_end * auni.Gyr/ abs(dt* auni.Myr)))
     xyz_stream = stream.xyz.value.T
-    xyz_prog = prog.xyz.value
+    xyz_prog = prog.xyz.value[:, 0]
 
     return xyz_stream, xyz_prog
 
-def stream_spline_ndim16(params, n_theta=72, min_particle=3, max_dist=80, package='agama'):
-    if package == 'gala':
-        xyz_stream, xyz_prog = gala_stream_model_ndim16(params)
-    elif package == 'agama':
-        xyz_stream, xyz_prog = agama_stream_model_ndim16(params)
+def stream_spline(xyz_stream, xyz_prog, n_theta=72, min_particle=3, max_dist=80):
 
     arg_lead  = np.arange(1, len(xyz_stream), 2)
     arg_trail = np.arange(0, len(xyz_stream), 2)
@@ -124,34 +120,34 @@ def stream_spline_ndim16(params, n_theta=72, min_particle=3, max_dist=80, packag
         r_lead_ordered  = r_lead[lead_ordered_indices]
 
         # If both arms have at least 2 points, compute curvature
-        if (len(trail_ordered_indices) < 2) and (len(lead_ordered_indices) < 2):
-            spline = None
-            theta_track = None
+        # if (len(trail_ordered_indices) < 2) and (len(lead_ordered_indices) < 2):
+        #     spline = None
+        #     theta_track = None
 
-        elif (len(trail_ordered_indices) >= 2) and (len(lead_ordered_indices) < 2):
-            curvature_trail = np.sum(compute_curvature(x_trail[trail_ordered_indices], y_trail[trail_ordered_indices]))
+        # elif (len(trail_ordered_indices) >= 2) and (len(lead_ordered_indices) < 2):
+        #     curvature_trail = np.sum(compute_curvature(x_trail[trail_ordered_indices], y_trail[trail_ordered_indices]))
 
-            if curvature_trail < 0:
-                spline, theta_track = get_spline_for_stream(theta_trail_ordered, r_trail_ordered, theta_prog, r_prog, np.array([]), np.array([]))
-            elif curvature_trail > 0:
-                spline, theta_track = get_spline_for_stream(np.array([]), np.array([]), r_prog, theta_trail_ordered, r_trail_ordered, theta_prog,)
-            else:
-                spline = None
-                theta_track = None
+        #     if curvature_trail < 0:
+        #         spline, theta_track = get_spline_for_stream(theta_trail_ordered, r_trail_ordered, theta_prog, r_prog, np.array([]), np.array([]))
+        #     elif curvature_trail > 0:
+        #         spline, theta_track = get_spline_for_stream(np.array([]), np.array([]), r_prog, theta_trail_ordered, r_trail_ordered, theta_prog,)
+        #     else:
+        #         spline = None
+        #         theta_track = None
 
-        elif (len(trail_ordered_indices) < 2) and (len(lead_ordered_indices) >= 2):
-            curvature_lead = np.sum(compute_curvature(x_lead[lead_ordered_indices], y_lead[lead_ordered_indices]))
+        # elif (len(trail_ordered_indices) < 2) and (len(lead_ordered_indices) >= 2):
+        #     curvature_lead = np.sum(compute_curvature(x_lead[lead_ordered_indices], y_lead[lead_ordered_indices]))
 
-            if curvature_lead < 0:
-                spline, theta_track = get_spline_for_stream(theta_lead_ordered, r_lead_ordered, theta_prog, r_prog, np.array([]), np.array([]))
-                print(theta_track)
-            elif curvature_lead > 0:
-                spline, theta_track = get_spline_for_stream(np.array([]), np.array([]), r_prog, theta_lead_ordered, r_lead_ordered, theta_prog)
-            else:
-                spline = None
-                theta_track = None
+        #     if curvature_lead < 0:
+        #         spline, theta_track = get_spline_for_stream(theta_lead_ordered, r_lead_ordered, theta_prog, r_prog, np.array([]), np.array([]))
+        #         print(theta_track)
+        #     elif curvature_lead > 0:
+        #         spline, theta_track = get_spline_for_stream(np.array([]), np.array([]), r_prog, theta_lead_ordered, r_lead_ordered, theta_prog)
+        #     else:
+        #         spline = None
+        #         theta_track = None
 
-        elif (len(trail_ordered_indices) >= 2) and (len(lead_ordered_indices) >= 2):
+        if (len(trail_ordered_indices) >= 2) and (len(lead_ordered_indices) >= 2):
             curvature_trail = np.sum(compute_curvature(x_trail[trail_ordered_indices], y_trail[trail_ordered_indices]))
             curvature_lead  = np.sum(compute_curvature(x_lead[lead_ordered_indices], y_lead[lead_ordered_indices]))
 
@@ -163,5 +159,9 @@ def stream_spline_ndim16(params, n_theta=72, min_particle=3, max_dist=80, packag
             else:
                 spline = None
                 theta_track = None
+        
+        else:
+            spline = None
+            theta_track = None
     
     return spline, theta_track

@@ -18,9 +18,9 @@ def get_mock_data(q_true,
         params = np.array( prior_trainsform(p) )
         params[2] = q_true
 
-        xyz_model, xyz_prog = model(params, n_steps=int(1e3))
+        xyz_model, xyz_prog = model(params)
 
-        spline, theta_track = model_spline(xyz_model)
+        spline, theta_track = model_spline(xyz_model, xyz_prog)
 
         if spline is not None:
             theta_new = np.linspace(theta_track.min(), theta_track.max(), 1000)

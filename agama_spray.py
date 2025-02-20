@@ -128,15 +128,18 @@ def create_stream_particle_spray_with_progenitor(
     pot_sat = agama.Potential(
         type='Plummer', mass=mass_sat, scaleRadius=radius_sat, center=np.column_stack([time_sat, orbit_sat]))
 
-
     # the total potential is the sum of the host galaxy and the progenitor
     pot_total = agama.Potential(pot_host, pot_sat)  # less dramatic
 
-    # create a version of the stream in the new potential
-    xv_stream_perturbed = np.vstack(agama.orbit(
-        potential=pot_total, ic=ic_stream, timestart=time_seed, time=-time_seed, trajsize=1, verbose=False)[:,1])
+    # # create a version of the stream in the new potential
+    # xv_stream_perturbed = np.vstack(agama.orbit(
+    #     potential=pot_total, ic=ic_stream, timestart=time_seed, time=-time_seed, trajsize=1, verbose=False)[:,1])
+
+    xv_stream_perturbed = np.stack(agama.orbit(
+        potential=pot_total, ic=ic_stream, timestart=time_seed, time=-time_seed, trajsize=N, verbose=False)[:, 1])
     
-    xyz_stream = xv_stream_perturbed[:,:3]
-    xyz_prog = orbit_sat[-1,:3]
+    # xyz_stream = xv_stream_perturbed[:,:3]
+    # xyz_prog = orbit_sat[-1,:3]
     
-    return xyz_stream, xyz_prog
+    return agama.orbit(
+        potential=pot_total, ic=ic_stream, timestart=time_seed, time=-time_seed, trajsize=N, verbose=False), orbit_sat[:, :3], time_sat

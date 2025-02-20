@@ -112,7 +112,7 @@ def get_spline_for_stream(first_theta, first_r, theta_prog, r_prog, second_theta
     theta_track = np.concatenate((first_theta, np.array([correct_theta_prog]), second_theta))
     r_track     = np.concatenate((first_r, np.array([r_prog]), seconnd_r))
     
-    if (np.diff(theta_track) > 0).all():
+    if (np.diff(theta_track) > 0).all() and (len(theta_track) > 2):
         spline = CubicSpline(theta_track, r_track, extrapolate=False)
     else:
         spline = None
@@ -120,7 +120,7 @@ def get_spline_for_stream(first_theta, first_r, theta_prog, r_prog, second_theta
 
     return spline, theta_track
     
-def restriction(theta, r, theta_min = 3*np.pi/2, theta_max = 6*np.pi, r_min = 10, dr_max = 500):
+def restriction(theta, r, theta_min = 3*np.pi/2, theta_max = 7*np.pi/2, r_min = 10, dr_max = 500):
     if (np.diff(theta) > 0).all() & (theta.ptp() > theta_min) & (r.min() > r_min) & (theta.ptp() < theta_max)   & (r.ptp() < dr_max):
         return True
     else:
