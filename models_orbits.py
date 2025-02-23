@@ -43,7 +43,7 @@ def gala_orbit_model_ndim12(params,  theta_initial=0, n_steps=int(1e3)):
 
     mat = get_mat(dirx, diry, dirz)
 
-    pot = gp.NFWPotential(10**logM, Rs, 1, 1, q, R=mat, units=units)
+    pot = gp.NFWPotential(10**logM, Rs, 1, 1, 0.933405, R=mat, units=units)
 
     orbit = pot.integrate_orbit(w0,
                                 dt=t_end / n_steps * auni.Gyr,
@@ -75,7 +75,7 @@ def gala_orbit_model_ndim13(params, n_steps=int(1e3)):
     vel_init_z = vel * v_dir[2]
     
     w0 = gd.PhaseSpacePosition(
-        pos=np.array([pos_init_x, 0, pos_init_z]) * auni.kpc,
+        pos=np.array([pos_init_x, pos_init_y, pos_init_z]) * auni.kpc,
         vel=np.array([vel_init_x, vel_init_y, vel_init_z]) * auni.km / auni.s,
     )
 
