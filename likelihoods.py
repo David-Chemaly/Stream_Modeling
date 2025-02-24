@@ -3,9 +3,9 @@ from scipy.interpolate import CubicSpline
 
 BAD_VAL = -1e100
 
-def model_log_likelihood(params, dict_data, model, spline_model, theta_initial):
-    xyz_model, xyz_prog = model(params, theta_initial=theta_initial)
-    spline, theta_model = spline_model(xyz_model, xyz_prog)
+def model_log_likelihood(params, dict_data, model, spline_model, theta_initial, pieces):
+    xyz_model, gamma, xyz_prog = model(params, theta_initial=theta_initial)
+    spline, theta_model = spline_model(xyz_model, gamma, xyz_prog, pieces=pieces)
 
     if spline == None:
         logl = 2*BAD_VAL

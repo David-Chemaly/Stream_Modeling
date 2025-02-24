@@ -41,45 +41,6 @@ def get_track_from_theta(xyz_stream, n_theta=36, min_particle=5):
 
     return theta_mean, r_mean, x_mean, y_mean
 
-def order_points_nearest_neighbor(x, y, x_start, y_start, max_dist=1000):
-    """
-    Orders the given (x, y) points using a nearest neighbor approach, 
-    starting from a custom (x_start, y_start) point.
-    
-    Returns:
-        ordered_indices: List of indices that sort the original points
-    """
-    # Combine x and y into coordinate pairs
-    points = np.column_stack((x, y))
-    
-    # Find the index of the nearest point to the given start point
-    distances = np.linalg.norm(points - np.array([x_start, y_start]), axis=1)
-    start_idx = np.argmin(distances)  # Closest point as start
-
-    # Initialize ordering
-    ordered_indices = [start_idx]
-    remaining_indices = set(range(len(points))) - {start_idx}
-
-    # Order points using nearest neighbor approach
-    while remaining_indices:
-        last_idx = ordered_indices[-1]
-        last_point = points[last_idx]
-        
-        # Find nearest remaining neighbor
-        remaining_points = points[list(remaining_indices)]
-        distances = np.linalg.norm(remaining_points - last_point, axis=1)
-        nearest_idx = np.argmin(distances)
-        
-        if distances[nearest_idx] > max_dist:
-            break
-        
-        # Convert back to the original index
-        original_idx = list(remaining_indices)[nearest_idx]
-        ordered_indices.append(original_idx)
-        remaining_indices.remove(original_idx)
-
-    return ordered_indices
-
 def compute_curvature(x, y):
     # First derivatives
     dx = np.gradient(x)
@@ -94,45 +55,68 @@ def compute_curvature(x, y):
     
     return curvature
 
-def get_spline_for_stream(first_theta, first_r, theta_prog, r_prog, second_theta, second_r):
-    first_theta = np.unwrap(np.flip(first_theta))
-    first_r = np.flip(first_r)
+def get_spline_for_stream(xyz_stream, gamma, xyz_prog, pieces='both', num_bins = 30, uniform = 'linear', min_particule = 13, min_track=5):
+    x_stream, y_stream = xyz_stream[:, -1, 0], xyz_stream[:, -1, 1]
 
-    NN = first_theta[-1] // (2*np.pi)
+    if uniform == 'linear':
+        # Compute the bin edges such that each bin has a constant size
+        bin_edges = np.linspace(np.min(gamma), np.max(gamma), num_bins + 1)
+    elif uniform == 'count':
+        # Compute the bin edges such that each bin has an equal number of points
+        bin_edges = np.percentile(gamma, np.linspace(0, 100, num_bins + 1))
 
-    correct_theta_prog = theta_prog + 2*np.pi*NN
+    # Bin the gamma values
+    indices = np.digitize(gamma, bin_edges)
 
-    first_r = first_r[first_theta < correct_theta_prog]
-    first_theta = first_theta[first_theta < correct_theta_prog]
+    average_x_in_bins, average_y_in_bins, average_gamma_in_bins = [], [], []
+    for i in range(1, num_bins + 1):
+        if np.sum(indices == i) >= min_particule:
+            average_x_in_bins.append(np.median(x_stream[indices == i]))
+            average_y_in_bins.append(np.median(y_stream[indices == i]))
+            average_gamma_in_bins.append(np.median(gamma[indices == i]))
+    average_x = np.array(average_x_in_bins)
+    average_y = np.array(average_y_in_bins)
+    average_gamma = np.array(average_gamma_in_bins)
 
-    second_theta = np.unwrap(second_theta + 2*np.pi*NN)
+    if pieces == 'leading':
+        arg_leading = average_gamma > 0
+        average_gamma = average_gamma[arg_leading]
+        average_x = average_x[arg_leading]
+        average_y = average_y[arg_leading]
+    elif pieces == 'trailing':
+        arg_trailing = average_gamma < 0
+        average_gamma = average_gamma[arg_trailing]
+        average_x = average_x[arg_trailing]
+        average_y = average_y[arg_trailing]
 
-    seconnd_r = second_r[second_theta > correct_theta_prog]
-    second_theta = second_theta[second_theta > correct_theta_prog]
-    theta_track = np.concatenate((first_theta, np.array([correct_theta_prog]), second_theta))
-    r_track     = np.concatenate((first_r, np.array([r_prog]), seconnd_r))
-    
-    if (np.diff(theta_track) > 0).all() and (len(theta_track) > 2):
-        spline = CubicSpline(theta_track, r_track, extrapolate=False)
+    if len(average_x) < min_track:
+        r_spline = None
+        theta_model = None
     else:
-        spline = None
-        theta_track = None
+        curvature = compute_curvature(average_x, average_y).sum()
 
-    return spline, theta_track
+        if curvature < 0:
+            average_x = average_x[::-1]
+            average_y = average_y[::-1]
+
+        average_r = np.sqrt(average_x**2 + average_y**2)
+        average_theta = np.arctan2(average_y, average_x)
+        average_theta[average_theta < 0] += 2*np.pi
+        theta_model = np.unwrap(average_theta)
+
+
+        if (np.diff(theta_model) <= 0).any():
+            r_spline = None
+            theta_model = None  
+        else:
+            r_spline = CubicSpline(theta_model, average_r)
+
+    return r_spline, theta_model
     
-def restriction(theta, r, theta_min = 3*np.pi/2, theta_max = 7*np.pi/2, r_min = 10, dr_max = 500):
+    
+def restriction(theta, r, theta_min = np.pi/2, theta_max = 7*np.pi/2, r_min = 10, dr_max = 500):
     if (np.diff(theta) > 0).all() & (theta.ptp() > theta_min) & (r.min() > r_min) & (theta.ptp() < theta_max)   & (r.ptp() < dr_max):
         return True
     else:
         return False
     
-def compute_gamma(all_xyz_stream, xyz_prog):
-
-    all_r_stream = np.linalg.norm(all_xyz_stream, axis=-1)
-    r_prog = np.linalg.norm(xyz_prog, axis=-1)
-    gamma = np.sum(all_r_stream - r_prog[None], axis=-1)
-    gamma_min = np.min(gamma)
-    gamma_max = np.max(gamma)
-    gamma = 2 * (gamma - gamma_min) / (gamma_max - gamma_min) - 1
-
-    return gamma

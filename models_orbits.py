@@ -43,7 +43,7 @@ def gala_orbit_model_ndim12(params,  theta_initial=0, n_steps=int(1e3)):
 
     mat = get_mat(dirx, diry, dirz)
 
-    pot = gp.NFWPotential(10**logM, Rs, 1, 1, 0.933405, R=mat, units=units)
+    pot = gp.NFWPotential(10**logM, Rs, 1, 1,  1.4, R=mat, units=units) # 0.933405, R=mat, units=units)
 
     orbit = pot.integrate_orbit(w0,
                                 dt=t_end / n_steps * auni.Gyr,
@@ -54,7 +54,7 @@ def gala_orbit_model_ndim12(params,  theta_initial=0, n_steps=int(1e3)):
     xyz_orbit = np.array([xout, yout, zout]).T
     xyz_prog  = np.array([xout[-1], yout[-1], zout[-1]]).T
 
-    return xyz_orbit, xyz_prog
+    return xyz_orbit, None, xyz_prog
 
 def gala_orbit_model_ndim13(params, n_steps=int(1e3)):
     # Unpack parameters
@@ -92,9 +92,9 @@ def gala_orbit_model_ndim13(params, n_steps=int(1e3)):
     xyz_orbit = np.array([xout, yout, zout]).T
     xyz_prog  = np.array([xout[-1], yout[-1], zout[-1]]).T
 
-    return xyz_orbit, xyz_prog
+    return xyz_orbit, None, xyz_prog
 
-def orbit_spline(xyz_model, xyz_prog):
+def orbit_spline(xyz_model, gamma, xyz_prog, pieces):
     x_model = xyz_model[:,0]
     y_model = xyz_model[:,1]
     r_model = np.sqrt(x_model**2 + y_model**2)

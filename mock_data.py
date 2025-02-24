@@ -8,7 +8,8 @@ def get_mock_data(q_true,
                     prior_trainsform,
                     model_spline,
                     ndim,
-                    seed=42, sigma=10, n_ang=72, min_particle=3, max_dist=80):
+                    pieces='both',
+                    seed=42, sigma=5):
     
     rng = np.random.RandomState(seed)
     correct = False
@@ -18,9 +19,9 @@ def get_mock_data(q_true,
         params = np.array( prior_trainsform(p) )
         params[2] = q_true
 
-        xyz_model, xyz_prog = model(params)
+        xyz_model, gamma, xyz_prog = model(params)
 
-        spline, theta_track = model_spline(xyz_model, xyz_prog)
+        spline, theta_track = model_spline(xyz_model, gamma, xyz_prog, pieces=pieces)
 
         if spline is not None:
             theta_new = np.linspace(theta_track.min(), theta_track.max(), 1000)

@@ -106,6 +106,7 @@ def create_stream_particle_spray_with_progenitor(
         xv_stream: position and velocity of stream particles at present time, evolved in the host potential only
         (shape: num_particles, 6),
     """
+
     # number of points on the orbit: each point produces two stream particles (leading and trailing arms)
     N = num_particles//2
 
@@ -122,6 +123,7 @@ def create_stream_particle_spray_with_progenitor(
     # for particles released at both Lagrange points
     rj, vj, R = get_rj_vj_R(pot_host, orbit_sat, mass_sat)
     ic_stream = create_ic_particle_spray(orbit_sat, rj, vj, R, gala_modified)
+
     time_seed = np.repeat(time_sat, 2)
 
     # the gravitational potential of the progenitor moving on its orbit
@@ -131,15 +133,24 @@ def create_stream_particle_spray_with_progenitor(
     # the total potential is the sum of the host galaxy and the progenitor
     pot_total = agama.Potential(pot_host, pot_sat)  # less dramatic
 
-    # # create a version of the stream in the new potential
-    # xv_stream_perturbed = np.vstack(agama.orbit(
-    #     potential=pot_total, ic=ic_stream, timestart=time_seed, time=-time_seed, trajsize=1, verbose=False)[:,1])
+    # create a version of the stream in the new potential
+    stream = agama.orbit(
+        potential=pot_total, ic=ic_stream, timestart=time_seed, time=-time_seed, trajsize=np.flip(np.repeat(np.arange(1, N+1, 1), 2)).astype(int), verbose=False)
 
-    xv_stream_perturbed = np.stack(agama.orbit(
-        potential=pot_total, ic=ic_stream, timestart=time_seed, time=-time_seed, trajsize=N, verbose=False)[:, 1])
+    xyz_stream  = np.zeros((len(stream), len(stream[:, 0][0]), 3))
+    for i in range(len(stream)):
+        xyz_stream[i, i//2:]  = stream[:, 1][i][:, :3]
+    r_stream = np.sqrt( xyz_stream[:,:,0]**2 + xyz_stream[:,:,1]**2 + xyz_stream[:,:,2]**2 )
+
+    xyz_orbit = orbit_sat[:, :3]
+    r_orbit  = np.sqrt( xyz_orbit[:,0]**2 + xyz_orbit[:,1]**2 + xyz_orbit[:,2]**2 )
+
+    arg_keep = r_stream != 0
+    gamma = -np.sum( (r_stream - r_orbit)*arg_keep , axis=-1)
     
-    # xyz_stream = xv_stream_perturbed[:,:3]
-    # xyz_prog = orbit_sat[-1,:3]
+    gamma_min = np.min(gamma)
+    gamma_max = np.max(gamma)
+    bigger = max(abs(gamma_min), abs(gamma_max))
+    gamma /= bigger
     
-    return agama.orbit(
-        potential=pot_total, ic=ic_stream, timestart=time_seed, time=-time_seed, trajsize=N, verbose=False), orbit_sat[:, :3], time_sat
+    return xyz_stream, gamma, xyz_orbit

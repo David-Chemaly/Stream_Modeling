@@ -42,9 +42,41 @@ def agama_stream_model_ndim16(params):
 
     posvel_sat = np.array([pos_init_x, pos_init_y, pos_init_z, vx, vy, vz])
 
-    xyz_stream, xyz_prog = create_stream_particle_spray_with_progenitor(time_total, num_particles, pot_host, posvel_sat, 10**logm, rs, gala_modified=True)
+    xyz_stream, gamma, xyz_prog = create_stream_particle_spray_with_progenitor(time_total, num_particles, pot_host, posvel_sat, 10**logm, rs, gala_modified=True)
 
-    return xyz_stream, xyz_prog
+    return xyz_stream, gamma, xyz_prog
+
+def agama_stream_model_ndim15(params, theta_initial=0):
+    # Unpack parameters
+    logM, Rs, q, dirx, diry, dirz, \
+    logm, rs, \
+    pos_init_x, pos_init_z, \
+    logv, dirvx, dirvy, dirvz, \
+    time_total = params
+
+    rot_mat = get_mat(dirx, diry, dirz)
+    rot = R.from_matrix(rot_mat)
+    euler_angles = rot.as_euler('xyz', degrees=False)
+
+    densitynorm = compute_densitynorm(10**logM, Rs, q)
+    pot_host = agama.Potential(type='Spheroid', densitynorm=densitynorm, scaleradius=Rs, gamma=1, alpha=1, beta=3, 
+                                axisRatioY=1, axisRatioZ=q, orientation=euler_angles)
+
+    num_particles = int(1e4)  # number of particles in the stream
+
+    v_dir = np.array([dirvx, dirvy, dirvz])
+    v_dir = v_dir/np.linalg.norm(v_dir)
+    vx = 10**logv * v_dir[0]
+    vy = 10**logv * v_dir[1]
+    vz = 10**logv * v_dir[2]
+
+    x_rot = pos_init_x * np.cos(theta_initial) 
+    y_rot = pos_init_x * np.sin(theta_initial) 
+    posvel_sat = np.array([x_rot, y_rot, pos_init_z, vx, vy, vz])
+
+    xyz_stream, gamma, xyz_prog = create_stream_particle_spray_with_progenitor(time_total, num_particles, pot_host, posvel_sat, 10**logm, rs, gala_modified=True)
+
+    return xyz_stream, gamma, xyz_prog
 
 def gala_stream_model_ndim16(params, dt=-10):
     # Unpack parameters
